@@ -228,3 +228,99 @@ class Particle:
     def collision(self, particles):
         if(self.position.y > 390):
             particles.remove(self)
+
+class Main:
+    global game_state
+    previous_frame_time = 0
+    dt = 0
+    elapsed_time = 0
+    time_between_spawns = 100
+
+    def calculate_deltatime(self):
+        self.dt = time.time() - self.previous_frame_time
+        self.dt *= 60
+        self.previous_frame_time = time.time()
+
+    def difficulty(self):
+        self.elapsed_time += self.dt
+        if(self.elapsed_time > 100):
+            self.elapsed_time = 0
+            self.time_between_spawns -= 1
+
+    def main(self):
+        global game_state
+        global score_int
+        global score
+        global max_score
+        global entities_alive
+        pygame.init()
+        screen = pygame.display.set_mode((720, 390))
+        icon = pygame.image.load("Data/Textures/Snowball.png").convert_alpha()
+        pygame.display.set_icon(icon)
+        mixer.init()
+        bg_music = mixer.Sound("Data/Sounds/BackgroundMusic.wav")
+        bg_music.play(1000)
+        spawner = Spawner(screen)
+        font = pygame.font.Font('freesansbold.ttf', 32)
+        end_font = pygame.font.Font('freesansbold.ttf', 64)
+        Width, Height = pygame.display.get_surface().get_size()
+        player = Player(50, 50, Width, Height)
+        ground = Box_Collider(0, 380, 720, 10, "environment")
+        particles = []
+        while True:
+            keys = [False, False, False]
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+            key = pygame.key.get_pressed()
+            if key[pygame.K_a]:
+                keys[0] = True
+            if key[pygame.K_d]:
+                keys[1] = True
+            if key[pygame.K_SPACE]:
+                keys[2] = True
+            self.calculate_deltatime()
+            screen.fill((155, 173, 183))
+            if(game_state == 1):
+                self.difficulty()
+                if(len(particles) < 100):
+                    particles.append(Particle())
+                player.move(keys, self.dt)
+                for i in range(len(particles)):
+                    try:
+                        particles[i].draw(screen)
+                        particles[i].move(self.dt)
+                        particles[i].collision(particles)
+                    except:
+                        pass
+                score_int += 1
+                score = int(score_int / 10)
+                player.draw(screen, (255, 255, 255), self.dt, [ground])
+                spawner.spawner()
+                spawner.timer(self.dt)
+                spawner.draw_enemies(self.dt)
+                spawner.check_for_player(player, player.scalar)
+                text = font.render(f'Score: {score}', True, (255, 255, 255))
+                screen.blit(text, (10, 10))
+            else:
+                title_text = end_font.render('Snowball Dodge', True, (255, 255, 255))
+                score_text = font.render(f'Current Score: {score}', True, (255, 255, 255))
+                max_score_text = font.render(f'Max Score: {max_score}', True, (255, 255, 255))
+                instr_text = font.render(f'Press SPACE to Start', True, (255, 255, 255))
+                screen.blit(title_text, (120, 40))
+                screen.blit(score_text, (10, 150))
+                screen.blit(max_score_text, (10, 190))
+                screen.blit(instr_text, (10, 230))
+                entities_alive = []
+                player = Player(50, 50, Width, Height)
+                spawner = Spawner(screen)
+                self.time_between_spawns = 100
+                score_int = 0
+                score = 0
+                if keys[2]:
+                    game_state = 1
+            pygame.display.flip()
+            pygame.display.update()
+
+Main().main()
